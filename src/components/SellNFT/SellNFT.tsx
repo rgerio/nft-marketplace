@@ -1,11 +1,14 @@
 import { SubmitHandler, useForm, useWatch } from 'react-hook-form';
 import { Container } from '../Container';
 import { Paper } from '../Paper';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Input } from '../Input';
 import { useWeb3 } from '../../features/web3/hooks/useWeb3';
 import { Button } from '../Button';
-import { toNumberConsideringEmptyNaN } from '../../utils/utils';
+import {
+  toNumberConsideringEmptyNaN,
+  validateAddress,
+} from '../../utils/utils';
 
 type Inputs = {
   nftContract: string;
@@ -33,33 +36,67 @@ export function SellNFT() {
   const selectedNFTTokenId = useWatch({ control, name: 'nftTokenID' });
 
   const {
+    getNFTOwnerOf,
     getNFTMarketplaceAllowance,
     listNFTForSale,
     accountAddress,
     connectWallet,
+    approveNFTForSale,
   } = useWeb3();
 
+  const [NFTOwner, setNFTOwner] = useState<string | null>(null);
   const [NFTMarketplaceAllowance, setNFTMarketplaceAllowance] = useState<
     boolean | null
   >(null);
+
+  const updateSelectedNFTData = useCallback(async () => {
+    const tokenId = toNumberConsideringEmptyNaN(selectedNFTTokenId);
+    setNFTOwner(await getNFTOwnerOf(selectedNFTContract, tokenId));
+    setNFTMarketplaceAllowance(
+      await getNFTMarketplaceAllowance(selectedNFTContract, tokenId),
+    );
+  }, [
+    getNFTMarketplaceAllowance,
+    getNFTOwnerOf,
+    selectedNFTContract,
+    selectedNFTTokenId,
+  ]);
+
   useEffect(() => {
-    const localSetNFTMarketplaceAllowance = async () =>
-      setNFTMarketplaceAllowance(
-        await getNFTMarketplaceAllowance(
-          selectedNFTContract,
-          toNumberConsideringEmptyNaN(selectedNFTTokenId),
-        ),
-      );
-    localSetNFTMarketplaceAllowance();
-  }, [getNFTMarketplaceAllowance, selectedNFTContract, selectedNFTTokenId]);
+    updateSelectedNFTData();
+  }, [updateSelectedNFTData]);
+
+  const handleApprove = useCallback(async () => {
+    const tokenId = toNumberConsideringEmptyNaN(selectedNFTTokenId);
+    await approveNFTForSale({ nftContract: selectedNFTContract, tokenId });
+    await updateSelectedNFTData();
+  }, [
+    approveNFTForSale,
+    selectedNFTContract,
+    selectedNFTTokenId,
+    updateSelectedNFTData,
+  ]);
+
+  const isNFTSelected = useMemo(() => {
+    return (
+      validateAddress(selectedNFTContract) &&
+      !isNaN(toNumberConsideringEmptyNaN(selectedNFTTokenId))
+    );
+  }, [selectedNFTContract, selectedNFTTokenId]);
 
   const onSubmit = useCallback<SubmitHandler<Inputs>>(
     (data) => {
+      const tokenId = toNumberConsideringEmptyNaN(data.nftTokenID);
+      const price = toNumberConsideringEmptyNaN(data.nftPrice);
+      if (isNaN(price) || isNaN(tokenId)) {
+        return;
+      }
+
       listNFTForSale({
         nftContract: data.nftContract,
-        tokenId: toNumberConsideringEmptyNaN(data.nftTokenID),
+        tokenId,
         tokenContract: data.tokenContract,
-        price: toNumberConsideringEmptyNaN(data.nftPrice),
+        price,
       });
     },
     [listNFTForSale],
@@ -127,14 +164,24 @@ export function SellNFT() {
               <Button size="large" onClick={connectWallet}>
                 Connect Wallet
               </Button>
-            ) : NFTMarketplaceAllowance === true ? (
-              <Button type="submit" size="large" onClick={connectWallet}>
-                List NFT for sell
-              </Button>
-            ) : NFTMarketplaceAllowance === false ? (
-              <Button size="large" onClick={() => {}}>
-                Approve
-              </Button>
+            ) : isNFTSelected ? (
+              NFTOwner !== null && NFTOwner !== accountAddress ? (
+                <Button type="submit" size="large" disabled>
+                  This NFT is not yours
+                </Button>
+              ) : NFTMarketplaceAllowance === true ? (
+                <Button type="submit" size="large">
+                  List NFT for sell
+                </Button>
+              ) : NFTMarketplaceAllowance === false ? (
+                <Button size="large" onClick={handleApprove}>
+                  Approve
+                </Button>
+              ) : (
+                <Button type="submit" size="large" disabled>
+                  Invalid NFT
+                </Button>
+              )
             ) : (
               <Button type="submit" size="large" disabled>
                 Choose an NFT

@@ -171,12 +171,43 @@ export function useWeb3() {
     [getNFTMarketplaceAllowance, getNFTMarketplaceContract],
   );
 
+  const approveNFTForSale = useCallback(
+    async ({
+      nftContract,
+      tokenId,
+    }: {
+      nftContract: string;
+      tokenId: number;
+    }) => {
+      try {
+        const contract = getNFTContract(nftContract);
+        if (!contract) return;
+        await contract.methods
+          .approve(NFT_MARKETPLACE_CONTRACT_ADDRESS, tokenId)
+          .send();
+      } catch (error) {
+        setError(
+          typeof error === 'string'
+            ? error
+            : // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            typeof (error as any)?.message === 'string'
+            ? // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              ((error as any)?.message as string)
+            : 'Something went wrong.',
+        );
+      }
+    },
+    [getNFTContract],
+  );
+
   return {
     getWeb3Instance,
     connectWallet,
     accountAddress,
     error,
+    getNFTOwnerOf,
     getNFTMarketplaceAllowance,
     listNFTForSale,
+    approveNFTForSale,
   };
 }
