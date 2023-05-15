@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Web3 from 'web3';
 import { AbiItem } from 'web3-utils';
+import { useSnackbar } from 'notistack';
 import NFTMarketplaceABI from '../../../contracts/NFTMarketplaceABI.json';
 import ERC721ABI from '../../../contracts/ERC721ABI.json';
 import { validateAddress } from '../../../utils/utils';
@@ -9,7 +10,31 @@ const NFT_MARKETPLACE_CONTRACT_ADDRESS =
   import.meta.env.VITE_NFT_MARKETPLACE_CONTRACT_ADDRESS ?? '';
 
 export function useWeb3() {
-  const [error, setError] = useState<string | null>(null);
+  const { enqueueSnackbar } = useSnackbar();
+
+  const notifyError = useCallback(
+    (error: unknown) => {
+      const errorMessage =
+        typeof error === 'string'
+          ? error
+          : // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          typeof (error as any)?.message === 'string'
+          ? // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            ((error as any)?.message as string)
+          : 'Something went wrong.';
+
+      enqueueSnackbar(errorMessage, { variant: 'error' });
+    },
+    [enqueueSnackbar],
+  );
+
+  const notifySuccess = useCallback(
+    (message: string) => {
+      enqueueSnackbar(message, { variant: 'success' });
+    },
+    [enqueueSnackbar],
+  );
+
   const [accounts, setAccounts] = useState<string[]>([]);
 
   const accountAddress = useMemo(
@@ -19,15 +44,13 @@ export function useWeb3() {
 
   const getWeb3Instance = useCallback(() => {
     if (!window.ethereum) {
-      setError(`No MetaMask found!`);
+      notifyError('No MetaMask found!');
       return null;
     }
 
     const web3Instance = new Web3(window.ethereum);
-
-    setError(null);
     return web3Instance;
-  }, []);
+  }, [notifyError]);
 
   const handleAccountsChanged = useCallback(async () => {
     setAccounts((await getWeb3Instance()?.eth.getAccounts()) ?? []);
@@ -51,21 +74,12 @@ export function useWeb3() {
       if (!newAccounts || !newAccounts.length) {
         throw new Error('Wallet not found/allowed!');
       }
-      setError(null);
       return newAccounts;
     } catch (error) {
-      setError(
-        typeof error === 'string'
-          ? error
-          : // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          typeof (error as any)?.message === 'string'
-          ? // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            ((error as any)?.message as string)
-          : 'Something went wrong.',
-      );
+      notifyError(error);
       return null;
     }
-  }, [getWeb3Instance]);
+  }, [getWeb3Instance, notifyError]);
 
   const getContract = useCallback(
     (abi: AbiItem[], contractAddress: string) => {
@@ -103,11 +117,12 @@ export function useWeb3() {
           ?.methods.ownerOf(NFTTokenId)
           .call();
         return ownerOf;
-      } catch (e) {
+      } catch (error) {
+        notifyError(error);
         return null;
       }
     },
-    [getNFTContract],
+    [getNFTContract, notifyError],
   );
 
   const getNFTMarketplaceAllowance = useCallback(
@@ -126,11 +141,12 @@ export function useWeb3() {
           NFT_MARKETPLACE_CONTRACT_ADDRESS === approvedAddress ||
           NFT_MARKETPLACE_CONTRACT_ADDRESS === NFTOwner
         );
-      } catch (e) {
+      } catch (error) {
+        notifyError(error);
         return null;
       }
     },
-    [getNFTContract, getNFTOwnerOf],
+    [getNFTContract, getNFTOwnerOf, notifyError],
   );
 
   const listNFTForSale = useCallback(
@@ -146,7 +162,7 @@ export function useWeb3() {
       price: number;
     }) => {
       if (!(await getNFTMarketplaceAllowance(nftContract, tokenId))) {
-        setError('User has not allowed NFT transfer yet');
+        notifyError('User has not allowed NFT transfer yet');
       }
 
       try {
@@ -155,20 +171,18 @@ export function useWeb3() {
         const tx = await contract.methods
           .listNFTForSale(nftContract, tokenId, tokenContract, price)
           .send();
-        alert(JSON.stringify(tx));
+        notifySuccess('Token listed successfully');
+        return tx;
       } catch (error) {
-        setError(
-          typeof error === 'string'
-            ? error
-            : // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            typeof (error as any)?.message === 'string'
-            ? // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              ((error as any)?.message as string)
-            : 'Something went wrong.',
-        );
+        notifyError(error);
       }
     },
-    [getNFTMarketplaceAllowance, getNFTMarketplaceContract],
+    [
+      getNFTMarketplaceAllowance,
+      getNFTMarketplaceContract,
+      notifyError,
+      notifySuccess,
+    ],
   );
 
   const approveNFTForSale = useCallback(
@@ -185,26 +199,18 @@ export function useWeb3() {
         await contract.methods
           .approve(NFT_MARKETPLACE_CONTRACT_ADDRESS, tokenId)
           .send();
+        notifySuccess('Approved successfully');
       } catch (error) {
-        setError(
-          typeof error === 'string'
-            ? error
-            : // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            typeof (error as any)?.message === 'string'
-            ? // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              ((error as any)?.message as string)
-            : 'Something went wrong.',
-        );
+        notifyError(error);
       }
     },
-    [getNFTContract],
+    [getNFTContract, notifyError, notifySuccess],
   );
 
   return {
     getWeb3Instance,
     connectWallet,
     accountAddress,
-    error,
     getNFTOwnerOf,
     getNFTMarketplaceAllowance,
     listNFTForSale,

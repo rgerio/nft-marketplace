@@ -85,14 +85,14 @@ export function SellNFT() {
   }, [selectedNFTContract, selectedNFTTokenId]);
 
   const onSubmit = useCallback<SubmitHandler<Inputs>>(
-    (data) => {
+    async (data) => {
       const tokenId = toNumberConsideringEmptyNaN(data.nftTokenID);
       const price = toNumberConsideringEmptyNaN(data.nftPrice);
       if (isNaN(price) || isNaN(tokenId)) {
         return;
       }
 
-      listNFTForSale({
+      await listNFTForSale({
         nftContract: data.nftContract,
         tokenId,
         tokenContract: data.tokenContract,
