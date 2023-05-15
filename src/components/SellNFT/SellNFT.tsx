@@ -107,8 +107,8 @@ export function SellNFT() {
                 },
               })}
               label="Token Contract: "
-              error={!!errors.nftTokenID}
-              helperText={errors.nftTokenID?.message}
+              error={!!errors.tokenContract}
+              helperText={errors.tokenContract?.message}
             />
 
             <Input
@@ -119,8 +119,8 @@ export function SellNFT() {
                 },
               })}
               label="NFT Price: "
-              error={!!errors.nftTokenID}
-              helperText={errors.nftTokenID?.message}
+              error={!!errors.nftPrice}
+              helperText={errors.nftPrice?.message}
             />
 
             {!accountAddress ? (
