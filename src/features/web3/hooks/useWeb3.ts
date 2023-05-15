@@ -112,7 +112,6 @@ export function useWeb3() {
 
   const getNFTMarketplaceAllowance = useCallback(
     async (NFTContract: string, NFTTokenId: number) => {
-      console.log(validateAddress(NFTContract));
       if (!validateAddress(NFTContract) || isNaN(NFTTokenId)) {
         return null;
       }
