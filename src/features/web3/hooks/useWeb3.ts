@@ -6,7 +6,7 @@ import ERC721ABI from '../../../contracts/ERC721ABI.json';
 import { validateAddress } from '../../../utils/utils';
 
 const MARKETPLACE_CONTRACT_ADDRESS =
-  '0xeF49e8ed1D259Febf01F919195A253519e4C0390';
+  import.meta.env.VITE_MARKETPLACE_CONTRACT_ADDRESS ?? '';
 
 export function useWeb3() {
   const [error, setError] = useState<string | null>(null);
