@@ -24,7 +24,7 @@ git clone https://github.com/rgerio/nft-marketplace && cd nft-marketplace
 # Install dependencies
 pnpm i
 
-# Edit the ENV variable MARKETPLACE_CONTRACT_ADDRESS with the proper NFTMarketplace contract address you deployed
+# Copy the file .env.example to .env.local and replace the variables properly
 
 # Run the app
 pnpm dev

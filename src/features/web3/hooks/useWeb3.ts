@@ -5,8 +5,8 @@ import NFTMarketplaceABI from '../../../contracts/NFTMarketplaceABI.json';
 import ERC721ABI from '../../../contracts/ERC721ABI.json';
 import { validateAddress } from '../../../utils/utils';
 
-const MARKETPLACE_CONTRACT_ADDRESS =
-  import.meta.env.VITE_MARKETPLACE_CONTRACT_ADDRESS ?? '';
+const NFT_MARKETPLACE_CONTRACT_ADDRESS =
+  import.meta.env.VITE_NFT_MARKETPLACE_CONTRACT_ADDRESS ?? '';
 
 export function useWeb3() {
   const [error, setError] = useState<string | null>(null);
@@ -81,7 +81,7 @@ export function useWeb3() {
   const getNFTMarketplaceContract = useCallback(() => {
     return getContract(
       NFTMarketplaceABI as AbiItem[],
-      MARKETPLACE_CONTRACT_ADDRESS,
+      NFT_MARKETPLACE_CONTRACT_ADDRESS,
     );
   }, [getContract]);
 
@@ -124,8 +124,8 @@ export function useWeb3() {
 
         const NFTOwner = await getNFTOwnerOf(NFTContract, NFTTokenId);
         return (
-          MARKETPLACE_CONTRACT_ADDRESS === approvedAddress ||
-          MARKETPLACE_CONTRACT_ADDRESS === NFTOwner
+          NFT_MARKETPLACE_CONTRACT_ADDRESS === approvedAddress ||
+          NFT_MARKETPLACE_CONTRACT_ADDRESS === NFTOwner
         );
       } catch (e) {
         return null;
