@@ -55,7 +55,6 @@ export function SellNFT() {
 
   const onSubmit = useCallback<SubmitHandler<Inputs>>(
     (data) => {
-      console.log(data);
       listNFTForSale({
         nftContract: data.nftContract,
         tokenId: toNumberConsideringEmptyNaN(data.nftTokenID),
